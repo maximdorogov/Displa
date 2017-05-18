@@ -1,0 +1,33 @@
+// Rutina para enviar datos al controlador
+
+#define cbi(reg, bitmask) *reg &= ~bitmask
+#define sbi(reg, bitmask) *reg |= bitmask
+#define pulse_high(reg, bitmask) sbi(reg, bitmask); cbi(reg, bitmask);
+#define pulse_low(reg, bitmask) cbi(reg, bitmask); sbi(reg, bitmask);
+
+void UTFT::LCD_Write_COM_DATA(char com1,int dat1)
+{
+	LCD_Write_COM(com1);
+	LCD_Write_DATA(dat1>>8,dat1);
+}
+
+
+void UTFT::LCD_Write_COM(char VL)  
+{   
+	cbi(P_RS, B_RS);
+	LCD_Writ_Bus(0x00,VL,display_transfer_mode);
+}
+
+void UTFT::LCD_Writ_Bus(char VH,char VL, byte mode)
+{   
+	PORTD = VH;
+	pulse_low(P_WR, B_WR);
+	PORTD = VL;
+	pulse_low(P_WR, B_WR);
+}
+
+void UTFT::LCD_Write_DATA(char VL)
+{
+	sbi(P_RS, B_RS);
+	LCD_Writ_Bus(0x00,VL,display_transfer_mode);
+}

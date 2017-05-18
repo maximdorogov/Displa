@@ -1,0 +1,32 @@
+void UTFT::InitLCD(byte orientation)
+{
+	orient=orientation;
+	_hw_special_init();
+
+	pinMode(__p1,OUTPUT);
+	pinMode(__p2,OUTPUT);
+	pinMode(__p3,OUTPUT);
+	if (__p4 != NOTINUSE)
+		pinMode(__p4,OUTPUT);
+	if ((display_transfer_mode==LATCHED_16) or ((display_transfer_mode==1) and (display_serial_mode==SERIAL_5PIN)))
+		pinMode(__p5,OUTPUT);
+	if (display_transfer_mode!=1)
+		_set_direction_registers(display_transfer_mode);
+
+	sbi(P_RST, B_RST);
+	delay(5); 
+	cbi(P_RST, B_RST);
+	delay(15);
+	sbi(P_RST, B_RST);
+	delay(15);
+
+	cbi(P_CS, B_CS);
+
+	switch(display_model)
+	{
+	#include "tft_drivers/ili9325d/default/initlcd.h"
+	}
+
+	sbi (P_CS, B_CS); 
+
+}
