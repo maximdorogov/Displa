@@ -57,8 +57,8 @@ INIT_LCD:
 	RCALL DELAY_15MS
 	CBI PORTC,B_CS
 
-	ldi Zl,low(INIT_COM_DATA_VALUES_ILI9325D<<1)
-	ldi zh,HIGH(INIT_COM_DATA_VALUES_ILI9325D<<1)
+	ldi Zl,low(INIT_COM_DATA_VALUES_ILI9325C<<1)
+	ldi zh,HIGH(INIT_COM_DATA_VALUES_ILI9325C<<1)
 
 	ldi counter,16
 LOOP_INIT_16:
@@ -111,7 +111,7 @@ END_WRITE_COM: RET
 WRITE_DATA:
 	
 	LPM data,Z+ ;cargo data_high en data y Z apunta a dat_low
-	cbi PORTC,B_RS
+	sbi PORTC,B_RS
 	OUT PORTD,data
 	cbi PORTC,B_WR
 	SBI PORTC,B_WR
