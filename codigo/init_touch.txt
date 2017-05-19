@@ -1,0 +1,90 @@
+
+//Calibracion, posiblemente no anden con nuestro display
+#define CAL_X 0x00378F66UL
+#define CAL_Y 0x03C34155UL
+#define CAL_S 0x000EF13FUL
+
+// En HW_AVR_defines.h
+
+#define cbi(reg, bitmask) *reg &= ~bitmask
+#define sbi(reg, bitmask) *reg |= bitmask
+#define rbi(reg, bitmask) ((*reg) & bitmask)
+
+// en arduino.h
+#define digitalPinToBitMask(P) ( pgm_read_byte( digital_pin_to_bit_mask_PGM + (P) ) )
+#define digitalPinToPort(P) ( pgm_read_byte( digital_pin_to_port_PGM + (P) ) )
+extern const uint8_t PROGMEM digital_pin_to_port_PGM[];
+
+// en URTouch.h
+volatile uint32_t* portOutputRegister(int value);
+
+//en pgmspace.h
+
+#define pgm_read_byte(address_short)    pgm_read_byte_near(address_short)
+#define pgm_read_byte_near(address_short) __LPM((uint16_t)(address_short))
+#define __LPM(addr)         __LPM_classic__(addr)
+#define __LPM_classic__(addr)   \
+(__extension__({                \
+    uint16_t __addr16 = (uint16_t)(addr); \
+    uint8_t __result;           \
+    __asm__ __volatile__        \
+    (                           \
+        "lpm" "\n\t"            \
+        "mov %0, r0" "\n\t"     \
+        : "=r" (__result)       \
+        : "z" (__addr16)        \
+        : "r0"                  \
+    );                          \
+    __result;                   \
+}))
+
+
+
+//en URTouch.cpp
+
+URTouch::URTouch(byte tclk, byte tcs, byte din, byte dout, byte irq)
+{
+	T_CLK	= tclk;
+	T_CS	= tcs;
+	T_DIN	= din;
+	T_DOUT	= dout;
+	T_IRQ	= irq;
+}
+
+
+void URTouch::InitTouch(byte orientation)
+{
+	orient					= orientation;
+	_default_orientation	= CAL_S>>31;
+	touch_x_left			= (CAL_X>>14) & 0x3FFF;
+	touch_x_right			= CAL_X & 0x3FFF;
+	touch_y_top				= (CAL_Y>>14) & 0x3FFF;
+	touch_y_bottom			= CAL_Y & 0x3FFF;
+	disp_x_size				= (CAL_S>>12) & 0x0FFF;
+	disp_y_size				= CAL_S & 0x0FFF;
+	<					= 10;
+
+	P_CLK	= portOutputRegister(digitalPinToPort(T_CLK));
+	B_CLK	= digitalPinToBitMask(T_CLK);
+	P_CS	= portOutputRegister(digitalPinToPort(T_CS));
+	B_CS	= digitalPinToBitMask(T_CS);
+	P_DIN	= portOutputRegister(digitalPinToPort(T_DIN));
+	B_DIN	= digitalPinToBitMask(T_DIN);
+	P_DOUT	= portInputRegister(digitalPinToPort(T_DOUT));
+	B_DOUT	= digitalPinToBitMask(T_DOUT);
+	P_IRQ	= portInputRegister(digitalPinToPort(T_IRQ));
+	B_IRQ	= digitalPinToBitMask(T_IRQ);
+
+	
+	//No encontre la definicion de pinmode en las librerias, pero lo unico que hace es definir como entrada o salida el pin que le pasas
+	pinMode(T_CLK,  OUTPUT);
+    pinMode(T_CS,   OUTPUT);
+    pinMode(T_DIN,  OUTPUT);
+    pinMode(T_DOUT, INPUT);
+    pinMode(T_IRQ,  OUTPUT);
+
+	sbi(P_CS, B_CS);
+	sbi(P_CLK, B_CLK);
+	sbi(P_DIN, B_DIN);
+	sbi(P_IRQ, B_IRQ);
+}
