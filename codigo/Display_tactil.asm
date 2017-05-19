@@ -34,7 +34,7 @@ MAIN:
 ;%%%%%%%%%%%%%%%%%%%%%%%%%% CONFIG PORTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	LOADIO DDRB, 0xff ;defino el puerto B como salida
 	LOADIO DDRD, 0xff ; defino el puerto D como salida. Va a ser el puerto de escritura al display.
-	LOADIO DDRC,0x3c ; defino los bits 2,3,4,5 del PORTC como salida.Van a ser los bits de control del display.
+	LOADIO DDRC,0xff ; defino el PORTC como salida.Van a ser los bits de control del display.
 
 ;%%%%%%%%%%%%%%%%%%%INICIALIZO LOS PUERTOS A VALoROES SEGUROS%%%%%%%%%%%%
 	LOADIO PORTC,0x38 ; inicializo el puerto en un valor seguro
