@@ -7,6 +7,49 @@
 
 .ENDMACRO
 
+.MACRO FILL_SCRN ;lleno la pantalla con un color, recibe como parametro un color en RGB565
+	
+	ldi c_high,HIGH(@0)
+	ldi c_low,LOW(@0)
+	cbi PORTC,B_CS
+	;deberia ir clear_screen()
+	sbi PORTC,B_RS
+	;para llenar la pantalla necesito repetir un loop 76800 veces, para ello armo 2 loops 
+	;uno de 65535 y otro de 11265
+	;cargo 65535 en dos registros
+	ldi r29,$ff 
+	ldi r28,$ff 
+	;cargo 11265 en dos registros
+	ldi r25,$2c 
+	ldi r24,$01
+START_FILL_1:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+	sbiw r29:r28,1
+	brne START_FILL_1
+;hasta aca ejecute la rutina 65535 veces, ahora hago un loop de 11265 para completar los 76800
+	
+
+START_FILL_2:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+	sbiw r25:r24,1
+	brne START_FILL_2
+
+	sbi PORTC,B_CS
+.ENDMACRO
+
 .EQU B_RST = 2
 .EQU B_CS = 3
 .EQU B_WR = 4
@@ -15,10 +58,11 @@
 .EQU NUM_COM_VALUES = 50 
 .EQU NUM_DATA_VALUES = 50
 
-.DEF   com1 = r20
-.DEF   data = r22
-.DEF   counter = r21
-
+.DEF com1 = r20
+.DEF data = r22
+.DEF counter = r21
+.DEF c_high = r18
+.DEF c_low = r17
 
 
 .cseg
@@ -44,7 +88,14 @@ MAIN:
 	
 	RCALL INIT_LCD
 
+	nop
+	nop
+
+	FILL_SCRN $F800
+
 ACA: RJMP ACA
+
+	
 
 
 INIT_LCD: 
