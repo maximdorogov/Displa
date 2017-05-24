@@ -12,8 +12,6 @@
 	;               y1 = 0
 	;               y2 = 239
 
-	;LCD_Write_COM_DATA(0x53, x1);
-	;LCD_Write_COM(0x22);
 	ldi r30,0x20
 	ldi r31,0	
 	WR_COM r30
