@@ -5,7 +5,7 @@
 
 .ENDMACRO
 
-.MACRO SET_XY_AREA ;@0 ES el ancho "y = 319" y @1 es el alto x = 239 
+.MACRO SET_XY_AREA  ;tome  la variable ancho de la funcion en C como el ancho del display
 	
 	;x2 = ancho-x2; x2 = 0
 	;x1 = ancho-x1; x1 = 319
