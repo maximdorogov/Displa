@@ -1,0 +1,113 @@
+.MACRO LOADIO
+	
+	ldi r16,@1
+	out @0,r16
+
+.ENDMACRO
+
+.MACRO SET_XY_AREA ;@0 ES el ancho "y = 319" y @1 es el alto x = 239 
+	
+	;x2 = ancho-x2; x2 = 0
+	;x1 = ancho-x1; x1 = 319
+	;               y1 = 0
+	;               y2 = 239
+
+	;LCD_Write_COM_DATA(0x53, x1);
+	;LCD_Write_COM(0x22);
+	ldi r30,0x20
+	ldi r31,0	
+	WR_COM r30
+	WR_DATA r31,r31
+	ldi r30,0x21
+	WR_COM r30
+	WR_DATA r31,r31
+	ldi r30,0x50
+	WR_COM r30
+	WR_DATA r31,r31
+	ldi r30,0x52
+	WR_COM r30
+	WR_DATA r31,r31
+	ldi r30,0x51
+	WR_COM r30
+	WR_DATA r31,r31
+	ldi r30,0x53
+	ldi r31,high(319)
+	ldi r29,low(319)
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x22
+	WR_COM r30
+	;ldi r29,high(@0)
+	;ldi r24,low(disp_y_size)
+	;ldi r25,high(disp_y_size)
+	;sbiw r25:r24,@0
+.ENDMACRO
+
+.MACRO WR_COM ;recibe un registro de 8 bits en @0
+	
+	cbi PORTC,B_RS
+	LOADIO PORTD,0
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD,@0
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+.ENDMACRO
+
+.MACRO WR_DATA ;recibe un registro en @0 data_high y en @1 data_low
+	
+	sbi PORTC,B_RS
+	OUT PORTD,@0    
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+	OUT PORTD,@1
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+.ENDMACRO
+
+.MACRO FILL_SCRN ;lleno la pantalla con un color, recibe como parametro un color en RGB565 (word)
+	
+	ldi c_high,HIGH(@0)
+	ldi c_low,LOW(@0)
+	cbi PORTC,B_CS
+
+	SET_XY_AREA
+
+	sbi PORTC,B_RS
+	;para llenar la pantalla necesito repetir un loop 76800 veces, para ello armo 2 loops 
+	;uno de 65535 y otro de 11265
+	;cargo 65535 en dos registros
+	ldi r29,$ff 
+	ldi r28,$ff 
+	;cargo 11265 en dos registros
+	ldi r25,$2c 
+	ldi r24,$01 
+
+START_FILL_1:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+	sbiw r29:r28,1
+	brne START_FILL_1
+;hasta aca ejecute la rutina 65535 veces, ahora hago un loop de 11265 para completar los 76800
+
+START_FILL_2:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+	sbiw r25:r24,1
+	brne START_FILL_2
+
+	sbi PORTC,B_CS
+.ENDMACRO
