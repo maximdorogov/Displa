@@ -1,6 +1,6 @@
 .include "m328def.inc"
 .include "mis_macros.mac"
-
+.include "tft_colors.inc"
 
 .EQU B_RST = 2
 .EQU B_CS = 3
@@ -42,7 +42,7 @@ MAIN:
 	
 	RCALL INIT_LCD
 
-	FILL_SCRN 0xF81F ;Lleno la pantalla de color fucsia
+	FILL_SCRN VGA_GREEN;Lleno la pantalla de color aZUL
 
 ACA: RJMP ACA
 

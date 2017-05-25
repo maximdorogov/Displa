@@ -5,40 +5,41 @@
 
 .ENDMACRO
 
-.MACRO SET_XY_AREA  ;tome  la variable ancho de la funcion en C como el ancho del display
+.MACRO SET_XY_AREA ;@0 x_init @1 y_init @2 x_final @3 y_final (y_max = 239  x_max = 319)
 	
-	;x2 = ancho-x2; x2 = 0
-	;x1 = ancho-x1; x1 = 319
-	;               y1 = 0
-	;               y2 = 239
-
 	ldi r30,0x20
-	ldi r31,0	
+	ldi r31,0 
+	LDI R19,@1 ;CARGO Y inicial
 	WR_COM r30
-	WR_DATA r31,r31
+	WR_DATA r19,r31
 	ldi r30,0x21
+	ldi r31,high(@0) ;CARGO X inicial
+	LDI R19,low(@0)
 	WR_COM r30
-	WR_DATA r31,r31
+	WR_DATA r31,r19
 	ldi r30,0x50
+	ldi r31,0 
+	LDI R19,@1 ;CARGO Y inicial
 	WR_COM r30
-	WR_DATA r31,r31
+	WR_DATA r31,r19
 	ldi r30,0x52
+	ldi r31,high(@0) ;CARGO X inicial
+	LDI R19,low(@0)
 	WR_COM r30
-	WR_DATA r31,r31
+	WR_DATA r31,r19
 	ldi r30,0x51
+	ldi r31,@3 ;cargo y final
+	LDI R19,0
 	WR_COM r30
-	WR_DATA r31,r31
+	WR_DATA r19,r31 
 	ldi r30,0x53
-	ldi r31,high(319)
-	ldi r29,low(319)
+	ldi r31,high(@2) ;cargo x final
+	ldi r29,low(@2)
 	WR_COM r30
 	WR_DATA r31,r29
 	ldi r30,0x22
 	WR_COM r30
-	;ldi r29,high(@0)
-	;ldi r24,low(disp_y_size)
-	;ldi r25,high(disp_y_size)
-	;sbiw r25:r24,@0
+
 .ENDMACRO
 
 .MACRO WR_COM ;recibe un registro de 8 bits en @0
@@ -69,9 +70,9 @@
 	
 	ldi c_high,HIGH(@0)
 	ldi c_low,LOW(@0)
-	cbi PORTC,B_CS
 
-	SET_XY_AREA
+	cbi PORTC,B_CS
+	SET_XY_AREA  0,0,319,239;@0 x_init @1 y_init @2 x_final @3 y_final
 
 	sbi PORTC,B_RS
 	;para llenar la pantalla necesito repetir un loop 76800 veces, para ello armo 2 loops 
@@ -81,7 +82,7 @@
 	ldi r28,$ff 
 	;cargo 11265 en dos registros
 	ldi r25,$2c 
-	ldi r24,$01 
+	ldi r24,$01
 
 START_FILL_1:
 	
