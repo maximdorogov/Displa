@@ -5,42 +5,43 @@
 
 .ENDMACRO
 
-.MACRO SET_XY_AREA ;@0 x_init @1 y_init @2 x_final @3 y_final (y_max = 239  x_max = 319)
+.MACRO SET_XY_AREA ;@0 x_init_h @1 x_init_l @2 y_init @3 x_final_h @4 x_final_l @5 y_final (y_max = 239  x_max = 319)
 	
 	ldi r30,0x20
 	ldi r31,0 
-	LDI R19,@1 ;CARGO Y inicial
+	mov R29,@2 ;CARGO Y inicial
 	WR_COM r30
-	WR_DATA r19,r31
+	WR_DATA r31,r29
 	ldi r30,0x21
-	ldi r31,high(@0) ;CARGO X inicial
-	LDI R19,low(@0)
+	mov r31,@0 ;CARGO X_h inicial 
+	mov R29,@1 ;CARGO X_l inicial
 	WR_COM r30
-	WR_DATA r31,r19
+	WR_DATA r31,r29
 	ldi r30,0x50
 	ldi r31,0 
-	LDI R19,@1 ;CARGO Y inicial
+	mov R29,@2 ;CARGO Y inicial
 	WR_COM r30
-	WR_DATA r31,r19
+	WR_DATA r31,r29
 	ldi r30,0x52
-	ldi r31,high(@0) ;CARGO X inicial
-	LDI R19,low(@0)
+	mov r31,@0 ;CARGO X_h inicial
+	mov R29,@1 ;CARGO X_l inicial
 	WR_COM r30
-	WR_DATA r31,r19
+	WR_DATA r31,r29
 	ldi r30,0x51
-	ldi r31,@3 ;cargo y final
-	LDI R19,0
+	mov r31,@5 ;cargo y final
+	LDI R29,0
 	WR_COM r30
-	WR_DATA r19,r31 
+	WR_DATA r29,r31 
 	ldi r30,0x53
-	ldi r31,high(@2) ;cargo x final
-	ldi r29,low(@2)
+	mov r31,@3 ;cargo x final
+	mov r29,@4
 	WR_COM r30
 	WR_DATA r31,r29
 	ldi r30,0x22
 	WR_COM r30
 
 .ENDMACRO
+
 
 .MACRO WR_COM ;recibe un registro de 8 bits en @0
 	
@@ -66,13 +67,39 @@
 
 .ENDMACRO
 
-.MACRO FILL_SCRN ;lleno la pantalla con un color, recibe como parametro un color en RGB565 (word)
-	
-	ldi c_high,HIGH(@0)
-	ldi c_low,LOW(@0)
+.MACRO DRAW_PIXEL ;@0 x_pix_h @1 x_pix_low @2 y_pix
+	;copio los parametros recibidos a otro registro para mandarlos a otra macro
+	mov r3,@0 ;x_pix_h
+	mov r2,@1 ;x_pix_low
+	mov r1,@2 ;y_pix
 
 	cbi PORTC,B_CS
-	SET_XY_AREA  0,0,319,239;@0 x_init @1 y_init @2 x_final @3 y_final
+	SET_XY_AREA r3,r2,r1,r3,r2,r1
+
+	ldi r16,0xFF ;cargo la parte baja del color con el que lleno el pixel
+	ldi r17,0xFF ;cargo la parte alta del color con el que lleno el pixel
+
+	WR_DATA r17,r16
+	sbi PORTC,B_CS
+
+	ldi r16,0 ;x_init_h,x_init_low,y_init
+	ldi r17,high(tft_max_x) ;x_final_h
+	ldi r18,low(tft_max_x) ;x_final_low
+	ldi r19,tft_max_y
+	SET_XY_AREA r16,r16,r16,r17,r18,r19
+	
+.ENDMACRO
+
+.MACRO FILL_SCRN ;lleno la pantalla con un color, recibe como parametro un color en RGB565 (word)
+
+	ldi r16,0 ;x_init_h,x_init_low,y_init
+	ldi r19,high(tft_max_x) ;x_final_h
+	ldi r20,low(tft_max_x);x_final_l
+	ldi r21,tft_max_y ;y_final
+
+	cbi PORTC,B_CS
+
+	SET_XY_AREA  r16,r16,R16,r19,r20,r21;;@0 x_init_h @1 x_init_l @2 y_init @3 x_final_h @4 x_final_l @5 y_final
 
 	sbi PORTC,B_RS
 	;para llenar la pantalla necesito repetir un loop 76800 veces, para ello armo 2 loops 
@@ -83,6 +110,9 @@
 	;cargo 11265 en dos registros
 	ldi r25,$2c 
 	ldi r24,$01
+
+	ldi c_high,HIGH(@0)
+	ldi c_low,LOW(@0)
 
 START_FILL_1:
 	

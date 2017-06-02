@@ -10,14 +10,14 @@
 .EQU NUM_COM_VALUES = 50 
 .EQU NUM_DATA_VALUES = 50
 
-.EQU disp_y_size = 319
+.EQU tft_max_x = 319
+.EQU tft_max_y = 239
 
 .DEF com1 = r20
 .DEF data = r22
 .DEF counter = r21
 .DEF c_high = r18
 .DEF c_low = r17
-
 
 .cseg
 
@@ -42,9 +42,20 @@ MAIN:
 	
 	RCALL INIT_LCD
 
-	FILL_SCRN VGA_GREEN;Lleno la pantalla de color aZUL
+;---TESTBENCH---- lleno la pantalla de azul y dibujo 2 pixeles en 2 posiciones distintas
 
-ACA: RJMP ACA
+	FILL_SCRN VGA_BLUE;Lleno la pantalla de color negro
+	ldi r31,high(100) ;pixel_x_h
+	ldi r30,low(100) ;pixel_x_low
+	ldi r29,100 ;pixel_y
+	DRAW_PIXEL r31,r30,r29
+	ldi r31,high(200) ;pixel_x_h
+	ldi r30,low(200) ;pixel_x_low
+	ldi r29,100 ;pixel_y
+	DRAW_PIXEL r31,r30,r29
+ACA:
+	
+	RJMP ACA
 
 
 
