@@ -1,0 +1,6 @@
+.MACRO LOADIO
+	
+	ldi r16,@1
+	out @0,r16
+
+.ENDMACRO

@@ -1,6 +1,7 @@
 .include "m328def.inc"
-.include "mis_macros.mac"
+.include "IO.mac"
 .include "tft_colors.inc"
+.include "tft_macros.mac"
 
 .EQU B_RST = 2
 .EQU B_CS = 3
@@ -19,6 +20,10 @@
 .DEF c_high = r18
 .DEF c_low = r17
 
+.EQU PIXEL_COLOR = VGA_WHITE
+.DEF pixel_x_high = r3
+.DEF pixel_x_low = r2
+.DEF pixel_y = r1
 .cseg
 
 MAIN:
@@ -44,7 +49,7 @@ MAIN:
 
 ;---TESTBENCH---- lleno la pantalla de azul y dibujo 2 pixeles en 2 posiciones distintas
 
-	FILL_SCRN VGA_BLUE;Lleno la pantalla de color negro
+	FILL_SCRN VGA_RED;Lleno la pantalla de color negro
 	ldi r31,high(100) ;pixel_x_h
 	ldi r30,low(100) ;pixel_x_low
 	ldi r29,100 ;pixel_y

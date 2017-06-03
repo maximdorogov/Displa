@@ -1,0 +1,137 @@
+
+
+.MACRO SET_XY_AREA ;@0 x_init_h @1 x_init_l @2 y_init @3 x_final_h @4 x_final_l @5 y_final (y_max = 239  x_max = 319)
+	
+	ldi r30,0x20
+	ldi r31,0 
+	mov R29,@2 ;CARGO Y inicial
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x21
+	mov r31,@0 ;CARGO X_h inicial 
+	mov R29,@1 ;CARGO X_l inicial
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x50
+	ldi r31,0 
+	mov R29,@2 ;CARGO Y inicial
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x52
+	mov r31,@0 ;CARGO X_h inicial
+	mov R29,@1 ;CARGO X_l inicial
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x51
+	mov r31,@5 ;cargo y final
+	LDI R29,0
+	WR_COM r30
+	WR_DATA r29,r31 
+	ldi r30,0x53
+	mov r31,@3 ;cargo x final
+	mov r29,@4
+	WR_COM r30
+	WR_DATA r31,r29
+	ldi r30,0x22
+	WR_COM r30
+
+.ENDMACRO
+
+
+.MACRO WR_COM ;recibe un registro de 8 bits en @0
+	
+	cbi PORTC,B_RS
+	LOADIO PORTD,0
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD,@0
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+.ENDMACRO
+
+.MACRO WR_DATA ;recibe un registro en @0 data_high y en @1 data_low
+	
+	sbi PORTC,B_RS
+	OUT PORTD,@0    
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+	OUT PORTD,@1
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+.ENDMACRO
+
+.MACRO DRAW_PIXEL ;@0 x_pix_h @1 x_pix_low @2 y_pix 
+	;copio los parametros recibidos a otro registro para mandarlos a otra macro
+	mov pixel_x_high,@0 ;x_pix_h
+	mov pixel_x_low,@1 ;x_pix_low
+	mov pixel_y,@2 ;y_pix
+
+	cbi PORTC,B_CS
+	SET_XY_AREA r3,r2,r1,r3,r2,r1
+
+	ldi r16,low(PIXEL_COLOR) ;cargo la parte baja del color con el que lleno el pixel
+	ldi r17,higH(PIXEL_COLOR) ;cargo la parte alta del color con el que lleno el pixel
+
+	WR_DATA r17,r16
+	sbi PORTC,B_CS
+
+	ldi r16,0 ;x_init_h,x_init_low,y_init
+	ldi r17,high(tft_max_x) ;x_final_h
+	ldi r18,low(tft_max_x) ;x_final_low
+	ldi r19,tft_max_y
+	SET_XY_AREA r16,r16,r16,r17,r18,r19
+	
+.ENDMACRO
+
+.MACRO FILL_SCRN ;lleno la pantalla con un color, recibe como parametro un color en RGB565 (word)
+
+	ldi r16,0 ;x_init_h,x_init_low,y_init
+	ldi r19,high(tft_max_x) ;x_final_h
+	ldi r20,low(tft_max_x);x_final_l
+	ldi r21,tft_max_y ;y_final
+
+	cbi PORTC,B_CS
+
+	SET_XY_AREA  r16,r16,R16,r19,r20,r21;;@0 x_init_h @1 x_init_l @2 y_init @3 x_final_h @4 x_final_l @5 y_final
+
+	sbi PORTC,B_RS
+	;para llenar la pantalla necesito repetir un loop 76800 veces, para ello armo 2 loops 
+	;uno de 65535 y otro de 11265
+	;cargo 65535 en dos registros
+	ldi r29,$ff 
+	ldi r28,$ff 
+	;cargo 11265 en dos registros
+	ldi r25,$2c 
+	ldi r24,$01
+
+	ldi c_high,HIGH(@0)
+	ldi c_low,LOW(@0)
+
+START_FILL_1:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+	sbiw r29:r28,1
+	brne START_FILL_1
+;hasta aca ejecute la rutina 65535 veces, ahora hago un loop de 11265 para completar los 76800
+
+START_FILL_2:
+	
+	out PORTD,c_high
+	cbi PORTC,B_WR
+	sbi PORTC,B_WR
+	OUT PORTD, c_low
+	cbi PORTC,B_WR
+	SBI PORTC,B_WR
+
+	sbiw r25:r24,1
+	brne START_FILL_2
+
+	sbi PORTC,B_CS
+.ENDMACRO
