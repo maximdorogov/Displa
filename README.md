@@ -4,6 +4,7 @@ Repositorio para la documentación de proyectos de
 Integrantes
 
 Accifonte, Franco
+
 Dorogov, Maxim
 
 
