@@ -1,6 +1,6 @@
 	.include "m328def.inc"
 
-;Constantes de calibraciÛn:
+;Constantes de calibraci√≥n:
 	.equ CAL_X	=	0x00378F66
 	.equ CAL_Y	=	0x03C34155
 	.equ CAL_S	=	0x000EF13F
@@ -22,21 +22,21 @@
 ;Puertos
   ;Bits
 	.equ B_CLK	=	4	;A1->PC4
-	.equ B_CS	=	0	;D8->PB0
+	.equ B_CS	=	2	;D10->PB2
 	.equ B_DIN	=	5	;A0->PC5
 	.equ B_DOUT	=	1	;D9->PB1
 	;.equ T_IRQ	=	34	;no mapeado
 	;.equ T_BUSY=	32	;no esta mapeado segun el esquematico del shield
   ;DDRs
 	.equ D_CLK	=	DDRC	;A1->PC4
-	.equ D_CS	=	DDRB	;D8->PB0
+	.equ D_CS	=	DDRB	;D10->PB2
 	.equ D_DIN	=	DDRC	;A0->PC5
 	.equ D_DOUT	=	DDRB	;D9->PB1
 	;.equ T_IRQ	=	34		;no mapeado
 	;.equ T_BUSY=	32		;no mapeado
   ;Ports
 	.equ P_CLK	=	PORTC	;A1->PC4
-	.equ P_CS	=	PORTB	;D8->PB0
+	.equ P_CS	=	PORTB	;D10->PB2
 	.equ P_DIN	=	PORTC	;A0->PC5
 	.equ P_DOUT	=	PORTB	;D9->PB1
 	;.equ T_IRQ	=	34		;no mapeado
@@ -89,7 +89,7 @@ DIN_SETEADO:				;DIN ya tiene el dato que corresponde,
 	sbi		P_CLK,B_CLK		;ahora tengo que hacer titilar el clock para que el ADC levante el dato
 	cbi		P_CLK,B_CLK
 	dec		contador
-	brne 	ENVIO_ORDEN		;en este punto ya est· cargada la orden en el ADC, creo que hay que poner un delay por aca y empezar a leer la respuesta
+	brne 	ENVIO_ORDEN		;en este punto ya est√° cargada la orden en el ADC, creo que hay que poner un delay por aca y empezar a leer la respuesta
 
 	
 ;----------------------Recepcion de datos----------------
