@@ -2,11 +2,11 @@
 ;y devuelve en los registros r2:X y en r3:high(Y) r4:low(Y)
 
 	.def	const_conv  =	r16
-	.def	resp_high_y	=	r17
-	.def	resp_low_y	=	r18
-	.def	resp_high_x	=	r19
-	.def	resp_low_x	=	r20
-	.def	aux			=	r21
+	.def	resp_high_x	=	r12
+	.def	resp_low_x	=	r13
+	.def	resp_high_y	=	r14
+	.def	resp_low_y	=	r15
+	.def	aux		=	r21
 	.def	aux_h		=	r22
 
 ;Esta es la cuenta que tengo que hacer:
@@ -26,7 +26,7 @@
  	;.equ disp_y_size	=	CAL_S & 0x0FFF;			=	0001 0011 1111	=	0x13F	=	319
 
 
-;Factores de conversión:
+;Factores de conversiÃ³n:
 ;disp_x_size/(touch_x_right - touch_x_left)= (239)/(870-222)=0.368827160=0x0.5E
 	.equ	CONV_X		=	0x5E
 ;disp_y_size/(touch_y_bottom - touch_y_top)=(319)/(341-3853)=-0.090831435=0x0.17
