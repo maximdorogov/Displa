@@ -1,17 +1,16 @@
-	.include "m328def.inc"
+	;.include "m328def.inc"
 
 ;Constantes de calibración:
 	.equ CAL_X	=	0x00378F66
 	.equ CAL_Y	=	0x03C34155
 	.equ CAL_S	=	0x000EF13F
-
 ;-----------------------------------------------
 ; Recibo en r16 la orden que se le envia al ADC y devuelvo en r17(high) y r18(low) lo que leyo el ADC
 ; las ordenes que se le envia son:
 ; S|A2|A1|A0|MODE|SER/DFR|PD1|PD2
 ; S es siempre 1. MODE 0 para 12 bits, 1 para 8 bits
 ; SER/DFR 1 para single ended reference mode, 0 para diferencial reference mode
-; PD1 y PD2 son para power down, si queres ahorrar energia.
+; PD1 y PD2 son para power down, si queres ahorrar energia. Los dejamos todos en 0
 ; Para leer x: 1001 0000
 ; Para leer y: 1101 0000
 
@@ -109,7 +108,7 @@ PIN_DOUT_NO_SETEADO:				;si el rjmp me trajo aca, es xq el ADC devuelve un cero,
 	dec 	contador
 	brne	RECIBO_DATO
 ;En este punto recibi los 12 bits de lo que devuelve el ADC, pongo el CS en high y listo
-	sbi		P_CS,B_CS		;bajo CS para empezar a enviar datos
+	sbi		P_CS,B_CS		;seteo CS para terminar el envio de datos.
 
 
 	
