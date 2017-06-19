@@ -4,7 +4,20 @@
 .equ Baud = 38400					; baud
 .equ UBRR = (Fosc/(Baud*16))-1	
 
-.def dato = r18
+.def dato = r20
+
+.MACRO DATA_TX
+CHECK:			
+; Wait for empty transmit buffer
+	lds r16,UCSR0A 
+
+	sbrs r16,UDRE0
+
+	rjmp CHECK
+	
+	sts UDR0,@0 ; Put data (r16) into buffer, sends the data
+	
+.ENDMACRO
 
 .cseg
 
@@ -34,22 +47,56 @@ MAIN:
 
 	
 	 ;cargo el dato a transmitir
-DATA_SEND_LOOP:
-	ldi dato,240
+MAIN_LOOP:
+
+	ldi dato,10
 			
+	RCALL SERIAL_TX ;dato;antes de llamar esta funcion cargo el valor a enviar en el registro "dato"
+	;DATA_TX dato
+	rcall DELAY_50MS
+
+	ldi dato,5
+			
+	RCALL SERIAL_TX ;dato;antes de llamar esta funcion cargo el valor a enviar en el registro "dato"
+	;DATA_TX dato
+	rcall DELAY_50MS
+
+	ldi dato,15
+
+	RCALL SERIAL_TX ;dato;antes de llamar esta funcion cargo el valor a enviar en el registro "dato"
+	;DATA_TX dato
+	rcall DELAY_50MS
+
+	rjmp MAIN_LOOP
+
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SERIAL_TX:
+RETRY:			
 ; Wait for empty transmit buffer
 	lds r16,UCSR0A 
 
 	sbrs r16,UDRE0
 
-	rjmp DATA_SEND_LOOP
+	rjmp RETRY
 	
 	sts UDR0,dato ; Put data (r16) into buffer, sends the data
-	
-	call DELAY_50MS
-	
-	rjmp DATA_SEND_LOOP
+SERIAL_TX_END: ret	
 
+
+DELAY_5MS:
+	
+	      ldi  R17, $86
+WGLOOP0:  ldi  R18, $C6
+WGLOOP1:  dec  R18
+          brne WGLOOP1
+          dec  R17
+          brne WGLOOP0
+; ----------------------------- 
+; delaying 2 cycles:
+          nop
+          nop
+END_DELAY_5MS: RET
 
 DELAY_50MS:
 		      ldi  R17, $5F
