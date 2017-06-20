@@ -1,9 +1,10 @@
-.include "m328def.inc"
+;.include "m328def.inc"
 .include "IO.mac"
 .include "tft_colors.inc"
 .include "tft_macros.mac"
 ;.include "read_convert.inc"
 
+.equ RAM_START = 0x0100
 .EQU B_RST = 2
 .EQU B_CS = 3
 .EQU B_WR = 4
@@ -38,6 +39,23 @@
 	.def	ac_resplx	=	r22
 	.def	ac_resphy	=	r23
 	.def	ac_resply	=	r24
+	.def	temp_memh	=	r25
+	.def	temp_meml	=	r26
+;Direcciones de memoria RAM
+	.equ	xh_min		=	RAM_START
+	.equ	xl_min		=	xh_min+1
+	.equ	xh_max		=	xh_min+2
+	.equ	xl_max		=	xh_min+3
+	.equ	yh_min		=	xh_min+4
+	.equ	yl_min		=	xh_min+5
+	.equ	yh_max		=	xh_min+6
+	.equ	yl_max		=	xh_min+7
+	.equ	anterior_xh	=	xh_min+8
+	.equ	anterior_hl	=	xh_min+9
+	.equ	anterior_y	=	xh_min+10
+;Varianzas aceptables de las mediciones
+	.equ 	var_x		=	7
+	.equ	var_y		=	16
 ;Puertos
   ;Bits
 	.equ TB_CLK	=	1	;A1->PC4
@@ -79,8 +97,8 @@
 	.equ 	TCAL_Y			=	0x03C34155;		=	0000 0011 1100 0011 0100 0001 0101 0101
  	.equ 	Ttouch_x_left	=	(TCAL_X>>14) & 0x3FF;	=	0000 1101 1110	=	0x0DE	=	222
  	.equ 	Ttouch_y_top	=	(TCAL_Y>>14) & 0x3FFF;	=	1111 0000 1101	=	0xF0D	=	3853
-	.equ	TCONV_X			=	0x5E
-	.equ	TCONV_Y			=	0x17
+	.equ	TCONV_X			=	0x11			;0x10
+	.equ	TCONV_Y			=	0x17			;0x17
 .cseg
 
 MAIN:
@@ -118,7 +136,11 @@ MAIN:
 	;DRAW_PIXEL r31,r30,r29
 ACA:
 	rcall READ_CONVERT ;
-	DRAW_PIXEL r11,r10,r12
+	ldi r20,240
+	sub r20,r10
+	mov r10,r20
+	DRAW_PIXEL r11,r12,r10
+	rcall DELAY_5MS
 	RJMP ACA
 
 
@@ -284,25 +306,56 @@ INIT_TOUCH_EXIT: ret
 
 ;--------------------------------------read_convert
 READ_CONVERT:
-		ldi		promedio,8				;Contador para acumular 8 muestras
+		ldi		promedio,16		;Contador para acumular 8 muestras
 		ldi		ac_resphx,0				;inicializo los acumuladores en cero
 		ldi		ac_resplx,0
 		ldi		ac_resphy,0
 		ldi		ac_resply,0
+		ldi		temp_memh,0xFF
+		; sts 	xh_min,temp_memh		;inicializo el minimo con 0xFF y el maximo con 0x00
+		; sts 	xl_min,temp_memh		;asi el primer dato que reciba se reemplaza
+		; sts 	xh_max,ac_resphx
+		; sts 	xl_max,ac_resphx
+		; sts 	yh_min,temp_memh
+		; sts 	yl_min,temp_memh
+		; sts 	yh_max,ac_resphx
+		; sts 	yl_max,ac_resphx
+		
 	INICIO_PROMEDIO:
-		ldi		orden,0x90				;Leo en X
+		ldi		orden,0xD0				;Leo en X
 		rcall MAGIA_ADC
+		;rcall COMP_EXT_X
 		add		ac_resplx,resp_low		;Acumulo para despues promediar
 		adc		ac_resphx,resp_high
-		ldi		orden,0xD0				;Leo en Y
+		ldi		orden,0x90				;Leo en Y
 		rcall MAGIA_ADC
+		;rcall COMP_EXT_Y
 		add		ac_resply,resp_low		;Acumulo para despues promediar
 		adc		ac_resphy,resp_high	
 		dec		promedio
 		brne	INICIO_PROMEDIO
-		sbi		TP_CS,TB_CS
-		ldi		promedio,3
-	DIVIDO_POR_8:
+		;sbi		TP_CS,TB_CS			;por algun motivo la rutina de C termina la comunicacion aca.
+		
+		; lds		temp_memh,xh_max
+		; sub		ac_resphx,temp_memh		;cargo en un registro auxiliar el high y el low del maximo de x, y se lo resto al acumulador
+		; lds		temp_memh,xl_max
+		; sbc		ac_resplx,temp_memh		;
+		; lds		temp_memh,xh_min		;repito para el valor minimo de x
+		; sub		ac_resphx,temp_memh		
+		; lds		temp_memh,xl_min
+		; sbc		ac_resplx,temp_memh		;
+		
+		; lds		temp_memh,yh_max		;Repito para Y
+		; sub		ac_resphy,temp_memh		
+		; lds		temp_memh,yl_max
+		; sbc		ac_resply,temp_memh		
+		; lds		temp_memh,yh_min		
+		; sub		ac_resphy,temp_memh		
+		; lds		temp_memh,yl_min
+		; sbc		ac_resply,temp_memh		
+		
+		ldi		promedio,4
+	 DIVIDO_POR_8:
 		lsr		ac_resphx				;Shifteo el acumulador 3 veces a la derecha para dividir por 8
 		ror		ac_resplx				;Esto es, promediar los 8 valores acumulados
 		lsr		ac_resphy
@@ -344,21 +397,23 @@ MAGIA_ADC:			;Rutina para recibir datos del ADC, tren de pulsos de ads784.pdf pa
 		ldi		resp_high,0x00
 		ldi		resp_low,0x00
 	RECIBO_DATO:
-		lsl		resp_low				;shifteo a la izquierda el low de la respuesta para que el msb quede en carry
-		rol		resp_high				;shifteo a la izquierda, y pongo el carry en el lsb
+		; lsl		resp_low				;shifteo a la izquierda el low de la respuesta para que el msb quede en carry
+		; rol		resp_high				;shifteo a la izquierda, y pongo el carry en el lsb
 		sbi		TP_CLK,TB_CLK
 		cbi 	TP_CLK,TB_CLK
 		sbic	TPIN_DOUT,TB_DOUT			;Mira el bit de DOUT, si esta en low, no hace nada, sino le suma uno a respuesta
 		inc		resp_low	
+		lsl		resp_low				;shifteo a la izquierda el low de la respuesta para que el msb quede en carry
+		rol		resp_high				;shifteo a la izquierda, y pongo el carry en el lsb
 		dec 	contador
 		brne	RECIBO_DATO
 	;En este punto recibi los 12 bits de lo que devuelve el ADC, pongo el CS en high y listo
-		;sbi		TP_CS,TB_CS		;seteo CS para terminar el envio de datos.
+		sbi		TP_CS,TB_CS		;seteo CS para terminar el envio de datos.
 		ldi		contador,0xF0		;Uso el contador como variable auxiliar. 
 		and		contador,resp_high	;si 0xF0 and resp_high no es cero, tengo un valor fuera de rango, lo trunco en 0x0FFF
 		breq	LEIDO_EN_RANGO
-		ldi		resp_high,0x0F
-		ldi		resp_low,0xFF
+		ldi		resp_high,0x00
+		ldi		resp_low,0x00
 	LEIDO_EN_RANGO:
 	ret
 	
@@ -368,13 +423,17 @@ MAGIA_ADC:			;Rutina para recibir datos del ADC, tren de pulsos de ads784.pdf pa
 	
 CONVERTIR_PIXEL:;----------------------------------------------------------------------------------------
 	;Esta es la cuenta que tengo que hacer:
-	; esta es la vieja, que no vaX=(TP_X-Ttouch_x_left)*Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left);
-	;X= ((TP_X - touch_y_top) * (disp_y_size)) / long(touch_y_bottom - touch_y_top);
-	; esta es la vieja que no va Y=(TP_Y-Ttouch_y_top) *Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top);
-	;Y=((TP_Y - touch_x_left) * (-disp_x_size)) / long(touch_x_right - touch_x_left) + long(disp_x_size);
+	;	VIEJOS	X=(TP_X-Ttouch_x_left)*Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left);
+	;			Y=(TP_Y-Ttouch_y_top) *Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top);
+	;			Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left)= (239)/(870-222)=0.368827160=0x0.5E
+	;			Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top)=(319)/(341-3853)=-0.090831435=0x0.17
+	;X=(TP_X - touch_y_top) *(disp_y_size)) /(touch_y_bottom - touch_y_top);
+	;	disp_y_size/(touch_y_bottom-touch_y_top)=319/(341-3853)=-0.090831435=0x0.17
+	;Y=(TP_Y - touch_x_left)*(-disp_x_size))/(touch_x_right - touch_x_left) + disp_x_size;
+	;	disp_x_size/(touch_x_right-touch_x_left)
+	
 	;Factores de conversión:
-	;Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left)= (239)/(870-222)=0.368827160=0x0.5E
-	;Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top)=(319)/(341-3853)=-0.090831435=0x0.17
+	
 	;La defino como positiva e invierto el sentido en que se hace la resta:TP_Y-Ttouch_y_top -> Ttouch_y_top-TP_Y
 
 	;Esta es la funcion que voy a implementar para la coma fija:
@@ -436,6 +495,44 @@ CONVERTIR_PIXEL:;---------------------------------------------------------------
 		inc		r3
 	NO_CARRY_Y:
 	ret
+	
+COMP_EXT_X:
+		lds		temp_memh,xh_max
+		lds		temp_meml,xl_max
+		cp		resp_low,temp_meml
+		cpc		resp_high,temp_memh
+		brcs	COMP_X_NOT_MAX
+		sts		xh_max,resp_high
+		sts		xl_max,resp_low
+	COMP_X_NOT_MAX:
+		lds		temp_memh,xh_min
+		lds		temp_meml,xl_min
+		cp		resp_low,temp_meml
+		cpc		resp_high,temp_memh
+		brcc	COMP_X_NOT_MIN
+		sts		xh_min,resp_high
+		sts		xl_min,resp_low
+	COMP_X_NOT_MIN:
+ret
+
+COMP_EXT_Y:
+		lds		temp_memh,yh_max
+		lds		temp_meml,yl_max
+		cp		resp_low,temp_meml
+		cpc		resp_high,temp_memh
+		brcs	COMP_Y_NOT_MAX
+		sts		yh_max,resp_high
+		sts		yl_max,resp_low
+	COMP_Y_NOT_MAX:
+		lds		temp_memh,yh_min
+		lds		temp_meml,yl_min
+		cp		resp_low,temp_meml
+		cpc		resp_high,temp_memh
+		brcc	COMP_Y_NOT_MIN
+		sts		yh_min,resp_high
+		sts		yl_min,resp_low
+	COMP_Y_NOT_MIN:
+ret
 
 	;%%%%%%%%%%%%%%%% TABLAS CON VALORES DE INICIALIZACION %%%%%%%%%%%%%%%%%%%%%%%%
 ;.ORG $200
