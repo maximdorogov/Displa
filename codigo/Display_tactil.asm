@@ -1,4 +1,4 @@
-;.include "m328def.inc"
+.include "m328def.inc"
 .include "IO.mac"
 .include "tft_colors.inc"
 .include "tft_macros.mac"
@@ -26,7 +26,7 @@
 .DEF pixel_x_high = r3
 .DEF pixel_x_low = r2
 .DEF pixel_y = r1
-
+.DEF offset = r20
 ;-----------------------------
 ;-----PARTE DE LA LECTURA-----
 ;-----------------------------
@@ -99,6 +99,15 @@
  	.equ 	Ttouch_y_top	=	(TCAL_Y>>14) & 0x3FFF;	=	1111 0000 1101	=	0xF0D	=	3853
 	.equ	TCONV_X			=	0x11			;0x10
 	.equ	TCONV_Y			=	0x17			;0x17
+;---------------------------------------------
+;-----Def y equs de la transmicion serie------
+;---------------------------------------------
+
+	.equ Fosc = 16000000				; clock
+	.equ Baud = 38400					; baud
+	.equ UBRR = (Fosc/(Baud*16))-1	
+
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 .cseg
 
 MAIN:
@@ -123,29 +132,64 @@ MAIN:
 	RCALL INIT_LCD
 	RCALL INIT_TOUCH
 
-;---TESTBENCH---- lleno la pantalla de azul y dibujo 2 pixeles en 2 posiciones distintas
-
+	
 	FILL_SCRN VGA_BLACK;Lleno la pantalla de color negro
-	;ldi r31,high(100) ;pixel_x_h
-	;ldi r30,low(100) ;pixel_x_low
-	;ldi r29,100 ;pixel_y
-	;DRAW_PIXEL r31,r30,r29
-	;ldi r31,high(200) ;pixel_x_h
-	;ldi r30,low(200) ;pixel_x_low
-	;ldi r29,100 ;pixel_y
-	;DRAW_PIXEL r31,r30,r29
+
 ACA:
 	rcall READ_CONVERT ;
-	ldi r20,240
-	sub r20,r10
-	mov r10,r20
+
+	ldi offset,240 ;cargo el valor del offset
+	sub offset,r10
+	mov r10,offset
+	
 	DRAW_PIXEL r11,r12,r10
+;divido la coordenada X en 2 y guardo el resutado de la division en r12
+	lsr r11 
+	ror r12
+	lsr r10
+;--------------------------------------
+	RCALL INIT_USART
 	rcall DELAY_5MS
-	RJMP ACA
+;
+	DATA_TX r12
+	rcall DELAY_5MS		
+	DATA_TX r10
+	rcall DELAY_5MS
+	rcall DISABLE_USART	
+	;rcall DELAY_5MS
+RJMP ACA
 
 
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+;%%%%%%%%%%%%%%%%%%%%%    RUTINAS    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+INIT_USART:
+;%%%%%%%%%%%%%%%% UART INIT %%%%%%%%%%%%%%%%%%%%%
+; inicializo la UART para transmitir datos de 8 bits 
+	clr r16
+	ldi r16,(1<<TXEN0) 
+	sts UCSR0B,r16 
 
+	ldi r16, (3<<UCSZ00)	; set Format Frame 8bit 1bit de stop.
+	sts UCSR0C, r16
+
+; set baud rate
+	ldi r16,HIGH(UBRR)			;set baud rate (38400bds / 16MHz)
+	sts UBRR0H,r16
+	ldi r16,low(UBRR)
+	sts UBRR0L,r16
+INIT_USART_EXIT: RET
+
+;----------------------------------------------------------------	
+
+DISABLE_USART:
+	
+	ldi r16,(0<<TXEN0) 
+	sts UCSR0B,r16 
+
+DISABLE_USART_EXIT:ret
+ 
+;-----------------------------------------------------------------
 
 INIT_LCD: 
 	
@@ -532,7 +576,7 @@ COMP_EXT_Y:
 		sts		yh_min,resp_high
 		sts		yl_min,resp_low
 	COMP_Y_NOT_MIN:
-ret
+ret     ret
 
 	;%%%%%%%%%%%%%%%% TABLAS CON VALORES DE INICIALIZACION %%%%%%%%%%%%%%%%%%%%%%%%
 ;.ORG $200
