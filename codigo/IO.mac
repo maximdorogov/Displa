@@ -4,3 +4,17 @@
 	out @0,r16
 
 .ENDMACRO
+
+.MACRO DATA_TX
+
+	CHECK:			
+	; Wait for empty transmit buffer
+		lds r16,UCSR0A 
+
+		sbrs r16,UDRE0
+
+		rjmp CHECK
+		
+		sts UDR0,@0 ; Put data (r16) into buffer, sends the data
+	
+.ENDMACRO
