@@ -2,7 +2,7 @@
 .include "IO.mac"
 .include "tft_colors.inc"
 .include "tft_macros.mac"
-;.include "read_convert.inc"
+
 
 .equ RAM_START = 0x0100
 .EQU B_RST = 2
