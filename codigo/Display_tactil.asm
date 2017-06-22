@@ -41,21 +41,6 @@
 	.def	ac_resply	=	r24
 	.def	temp_memh	=	r25
 	.def	temp_meml	=	r26
-;Direcciones de memoria RAM
-	.equ	xh_min		=	RAM_START
-	.equ	xl_min		=	xh_min+1
-	.equ	xh_max		=	xh_min+2
-	.equ	xl_max		=	xh_min+3
-	.equ	yh_min		=	xh_min+4
-	.equ	yl_min		=	xh_min+5
-	.equ	yh_max		=	xh_min+6
-	.equ	yl_max		=	xh_min+7
-	.equ	anterior_xh	=	xh_min+8
-	.equ	anterior_hl	=	xh_min+9
-	.equ	anterior_y	=	xh_min+10
-;Varianzas aceptables de las mediciones
-	.equ 	var_x		=	7
-	.equ	var_y		=	16
 ;Puertos
   ;Bits
 	.equ TB_CLK	=	1	;A1->PC4
@@ -87,18 +72,18 @@
 ;-----------------------------
 	.def	Tconst_conv  	=	r16
 	.def	Tresp_high_x 	=	r12
-	.def	Tresp_low_x		=	r13
+	.def	Tresp_low_x	=	r13
 	.def	Tresp_high_y	=	r14
-	.def	Tresp_low_y		=	r15
-	.def	Taux			=	r21
-	.def	Taux_h			=	r22
+	.def	Tresp_low_y	=	r15
+	.def	Taux		=	r21
+	.def	Taux_h		=	r22
 	
-	.equ 	TCAL_X			=	0x00378F66;		=	0000 0000 0011 0111 1000 1111 0110 0110
-	.equ 	TCAL_Y			=	0x03C34155;		=	0000 0011 1100 0011 0100 0001 0101 0101
+	.equ 	TCAL_X		=	0x00378F66;		=	0000 0000 0011 0111 1000 1111 0110 0110
+	.equ 	TCAL_Y		=	0x03C34155;		=	0000 0011 1100 0011 0100 0001 0101 0101
  	.equ 	Ttouch_x_left	=	(TCAL_X>>14) & 0x3FF;	=	0000 1101 1110	=	0x0DE	=	222
  	.equ 	Ttouch_y_top	=	(TCAL_Y>>14) & 0x3FFF;	=	1111 0000 1101	=	0xF0D	=	3853
-	.equ	TCONV_X			=	0x11			;0x10
-	.equ	TCONV_Y			=	0x17			;0x17
+	.equ	TCONV_X		=	0x11			;0x10
+	.equ	TCONV_Y		=	0x17			;0x17
 ;---------------------------------------------
 ;-----Def y equs de la transmicion serie------
 ;---------------------------------------------
@@ -350,21 +335,13 @@ INIT_TOUCH_EXIT: ret
 
 ;--------------------------------------read_convert
 READ_CONVERT:
-		ldi		promedio,16		;Contador para acumular 8 muestras
-		ldi		ac_resphx,0				;inicializo los acumuladores en cero
+		ldi		promedio,16		;Contador para acumular 16 muestras
+		ldi		ac_resphx,0		;inicializo los acumuladores en cero
 		ldi		ac_resplx,0
 		ldi		ac_resphy,0
 		ldi		ac_resply,0
 		ldi		temp_memh,0xFF
-		; sts 	xh_min,temp_memh		;inicializo el minimo con 0xFF y el maximo con 0x00
-		; sts 	xl_min,temp_memh		;asi el primer dato que reciba se reemplaza
-		; sts 	xh_max,ac_resphx
-		; sts 	xl_max,ac_resphx
-		; sts 	yh_min,temp_memh
-		; sts 	yl_min,temp_memh
-		; sts 	yh_max,ac_resphx
-		; sts 	yl_max,ac_resphx
-		
+				
 	INICIO_PROMEDIO:
 		ldi		orden,0xD0				;Leo en X
 		rcall MAGIA_ADC
@@ -467,18 +444,10 @@ MAGIA_ADC:			;Rutina para recibir datos del ADC, tren de pulsos de ads784.pdf pa
 	
 CONVERTIR_PIXEL:;----------------------------------------------------------------------------------------
 	;Esta es la cuenta que tengo que hacer:
-	;	VIEJOS	X=(TP_X-Ttouch_x_left)*Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left);
-	;			Y=(TP_Y-Ttouch_y_top) *Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top);
-	;			Tdisp_x_size/(Ttouch_x_right - Ttouch_x_left)= (239)/(870-222)=0.368827160=0x0.5E
-	;			Tdisp_y_size/(Ttouch_y_bottom - Ttouch_y_top)=(319)/(341-3853)=-0.090831435=0x0.17
 	;X=(TP_X - touch_y_top) *(disp_y_size)) /(touch_y_bottom - touch_y_top);
-	;	disp_y_size/(touch_y_bottom-touch_y_top)=319/(341-3853)=-0.090831435=0x0.17
+	;	disp_y_size/(touch_y_bottom-touch_y_top)=319/(341-3853)= -0.090831435 = -0x0.17
 	;Y=(TP_Y - touch_x_left)*(-disp_x_size))/(touch_x_right - touch_x_left) + disp_x_size;
-	;	disp_x_size/(touch_x_right-touch_x_left)
-	
-	;Factores de conversión:
-	
-	;La defino como positiva e invierto el sentido en que se hace la resta:TP_Y-Ttouch_y_top -> Ttouch_y_top-TP_Y
+	;	disp_x_size/(touch_x_right-touch_x_left)=239/(3942-222)=  0,064247311 =  0x10
 
 	;Esta es la funcion que voy a implementar para la coma fija:
 	; a b , 0
@@ -539,44 +508,6 @@ CONVERTIR_PIXEL:;---------------------------------------------------------------
 		inc		r3
 	NO_CARRY_Y:
 	ret
-	
-COMP_EXT_X:
-		lds		temp_memh,xh_max
-		lds		temp_meml,xl_max
-		cp		resp_low,temp_meml
-		cpc		resp_high,temp_memh
-		brcs	COMP_X_NOT_MAX
-		sts		xh_max,resp_high
-		sts		xl_max,resp_low
-	COMP_X_NOT_MAX:
-		lds		temp_memh,xh_min
-		lds		temp_meml,xl_min
-		cp		resp_low,temp_meml
-		cpc		resp_high,temp_memh
-		brcc	COMP_X_NOT_MIN
-		sts		xh_min,resp_high
-		sts		xl_min,resp_low
-	COMP_X_NOT_MIN:
-ret
-
-COMP_EXT_Y:
-		lds		temp_memh,yh_max
-		lds		temp_meml,yl_max
-		cp		resp_low,temp_meml
-		cpc		resp_high,temp_memh
-		brcs	COMP_Y_NOT_MAX
-		sts		yh_max,resp_high
-		sts		yl_max,resp_low
-	COMP_Y_NOT_MAX:
-		lds		temp_memh,yh_min
-		lds		temp_meml,yl_min
-		cp		resp_low,temp_meml
-		cpc		resp_high,temp_memh
-		brcc	COMP_Y_NOT_MIN
-		sts		yh_min,resp_high
-		sts		yl_min,resp_low
-	COMP_Y_NOT_MIN:
-ret     ret
 
 	;%%%%%%%%%%%%%%%% TABLAS CON VALORES DE INICIALIZACION %%%%%%%%%%%%%%%%%%%%%%%%
 ;.ORG $200
